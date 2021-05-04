@@ -52,18 +52,20 @@ downloads: {}
 # Use `anaconda-project add-packages` to add packages.
 #
 packages:
-- anaconda
-- jupyterlab
-- python=3.7
-- pandas
-- scikit-learn
-
-- matplotlib==3.3.0
-- altair
-- NLTK
-- Gensim
-- spacy
-- pip
+  - anaconda
+  - jupyterlab
+  - python=3.7
+  - pandas
+  - scikit-learn
+  - pip:
+    - textstat
+  - matplotlib==3.3.0
+  - altair
+  - NLTK
+  - Gensim
+  - spacy
+  
+    
 #
 # In the channels section, list any Conda channel URLs to be searched
 # for packages.
