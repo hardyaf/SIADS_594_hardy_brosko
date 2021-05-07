@@ -1,0 +1,67 @@
+import pandas as pd
+import re
+from nltk.corpus import stopwords
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import RandomForestClassifier
+import numpy as np
+
+WikiLarge_Train = pd.read_csv('WikiLarge_Train.csv').reset_index() 
+WikiLarge_Test = pd.read_csv('WikiLarge_Test.csv').reset_index() 
+AoA_words = pd.read_csv('AoA_51715_words.csv', encoding= 'unicode_escape')
+
+train_df1 = WikiLarge_Train
+train_df1["clean_text"] = train_df1['original_text'].str.replace('[^\w\s]','')
+train_df1["clean_text"] = train_df1["clean_text"].str.lower().str.split()
+train_df1['word_count'] = [len(x) for x in train_df1['clean_text'].tolist()]
+
+stop = stopwords.words('english')
+train_df1["clean_text_no_stop"] = train_df1['clean_text'].apply(lambda x: [item for item in x if item not in stop])
+train_df1['word_count_no_stop'] = [len(x) for x in train_df1['clean_text_no_stop'].tolist()]
+
+train_df2 = train_df1.explode('clean_text_no_stop')
+train_df2["Word"] = train_df2['clean_text_no_stop']
+
+train_df3 = train_df2.merge(AoA_words, on='Word', how='left')
+
+train_AoA=train_df3.groupby('index').agg({'Nsyll':'mean', 'AoA_Kup_lem':'mean', 'Perc_known_lem':'mean'}).reset_index()
+
+train_df = train_df1.merge(train_AoA, on='index', how='left')
+
+X_train = train_df[['word_count_no_stop','Nsyll','AoA_Kup_lem','Perc_known_lem']]
+y_train = pd.Series(train_df['label'])
+X_train = X_train.replace(np.nan, 0)
+
+test_df1 = WikiLarge_Test
+test_df1["clean_text"] = test_df1['original_text'].str.replace('[^\w\s]','')
+test_df1["clean_text"] = test_df1["clean_text"].str.lower().str.split()
+test_df1['word_count'] = [len(x) for x in test_df1['clean_text'].tolist()]
+
+stop = stopwords.words('english')
+test_df1["clean_text_no_stop"] = test_df1['clean_text'].apply(lambda x: [item for item in x if item not in stop])
+test_df1['word_count_no_stop'] = [len(x) for x in test_df1['clean_text_no_stop'].tolist()]
+
+test_df2 = test_df1.explode('clean_text_no_stop')
+test_df2["Word"] = test_df2['clean_text_no_stop']
+
+test_df3 = test_df2.merge(AoA_words, on='Word', how='left')
+
+test_AoA=test_df3.groupby('index').agg({'Nsyll':'mean', 'AoA_Kup_lem':'mean', 'Perc_known_lem':'mean'}).reset_index()
+
+test_df = test_df1.merge(test_AoA, on='index', how='left')
+
+X_test = test_df[['word_count_no_stop','Nsyll','AoA_Kup_lem','Perc_known_lem']]
+X_test = X_test.replace(np.nan, 0)
+
+knn = KNeighborsClassifier()
+knn.fit(X_train, y_train)
+
+knn_test = knn.predict(X_test)
+knn_df = pd.DataFrame(knn_test, columns = ['label'])
+knn_df.to_csv('knn.csv', index=True)
+
+rf = RandomForestClassifier(n_estimators=50, random_state=42)
+rf.fit(X_train, y_train)
+
+rf_test = rf.predict(X_test)
+rf_df = pd.DataFrame(rt_test, columns = ['label'])
+rf_df.to_csv('rf.csv', index=True)
